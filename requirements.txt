@@ -5,9 +5,6 @@ seaborn
 scikit-learn
 lightgbm
 xgboost
-imblearn
-preprocessing
 imbalanced-learn
 flask
-pickle-mixin
 catboost
