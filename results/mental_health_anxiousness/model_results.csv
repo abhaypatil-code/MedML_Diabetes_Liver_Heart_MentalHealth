@@ -1,0 +1,2 @@
+model_name,accuracy,precision,recall,f1_score,confusion_matrix,classification_report,roc_auc,log_loss,target
+Logistic Regression,1.0,1.0,1.0,1.0,"[[117, 0], [0, 38]]","{'0.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 117.0}, '1.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 38.0}, 'accuracy': 1.0, 'macro avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 155.0}, 'weighted avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 155.0}}",1.0,0.04474948065848518,anxiousness

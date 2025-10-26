@@ -1,0 +1,2 @@
+model_name,accuracy,precision,recall,f1_score,confusion_matrix,classification_report,roc_auc,log_loss,target
+Random Forest,1.0,1.0,1.0,1.0,"[[113, 0], [0, 42]]","{'0.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 113.0}, '1.0': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 42.0}, 'accuracy': 1.0, 'macro avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 155.0}, 'weighted avg': {'precision': 1.0, 'recall': 1.0, 'f1-score': 1.0, 'support': 155.0}}",1.0,0.010344953695748775,depressiveness

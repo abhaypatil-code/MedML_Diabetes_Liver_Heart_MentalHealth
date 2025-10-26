@@ -1,0 +1,25 @@
+Diabetes Prediction - Preprocessing Pipeline Summary
+
+Dataset Information:
+  Original shape: (768, 9)
+  Final shape (cleaned, unscaled): (768, 14)
+  Total features after engineering: 13
+  Target variable: Outcome
+
+Preprocessing Steps Completed (Correct Order):
+  1. Data Loading
+  2. Exploratory Data Analysis (visualizations saved)
+  3. Zero Values Handling (medically impossible NaN)
+  4. Missing Values Imputation (median strategy)
+  5. Outlier Detection and Capping (IQR method)
+  6. Feature Engineering (new features created)
+  7. Duplicate Removal
+  8. Train-Test Split (80-20, stratified)
+  9. Feature Normalization (StandardScaler, fitted on TRAIN only)
+Outputs Generated:
+  - Processed unscaled dataset (data/processed/diabetes_processed.csv)
+  - Fitted scaler from train data (scalers/diabetes_scaler.pkl)
+  - SCALED Train split (data/splits/diabetes_train.csv)
+  - SCALED Test split (data/splits/diabetes_test.csv)
+  - Visualizations (results/diabetes/visualizations/, 9+ images)
+Ready for Model Training!
