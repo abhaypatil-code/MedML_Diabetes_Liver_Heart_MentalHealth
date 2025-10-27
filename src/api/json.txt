@@ -1,0 +1,172 @@
+JSON Input Format for Each Model
+Here is the JSON format each endpoint expects. The "features" key must contain a single 1D array (a list) with the following features in this exact order.
+
+1. Liver Prediction
+Endpoint: /predict/liver Method: POST Features Count: 17
+
+Based on src/preprocessing/liver_preprocessing.py, the model expects the 10 original features (with "Gender" encoded) plus 7 engineered features.
+
+JSON Body:
+
+JSON
+
+{
+  "features": [
+    // --- Original Features (10) ---
+    1,  // Age (e.g., 65)
+    1,  // Gender (Encoded: e.g., Male=1, Female=0)
+    0.7, // TB (Total_Bilirubin)
+    0.1, // DB (Direct_Bilirubin)
+    187, // Alkphos (Alkaline_Phosphotase)
+    16,  // Sgpt (Alamine_Aminotransferase)
+    18,  // Sgot (Aspartate_Aminotransferase)
+    6.8, // TP (Total_Protiens)
+    3.3, // ALB (Albumin)
+    0.9, // AGRatio (Albumin_and_Globulin_Ratio) (must be pre-imputed)
+    // --- Engineered Features (7) ---
+    0.14, // BilirubinRatio (DB / (TB + 1e-6))
+    0.88, // SGPTSGOTRatio (Sgpt / (Sgot + 1e-6))
+    34,   // TotalEnzymes (Sgpt + Sgot)
+    3,    // AgeGroup (Encoded from Age: e.g., [0, 30, 45, 60, 100] -> [0, 1, 2, 3])
+    0,    // LowProtein (Encoded: 1 if TP < 6.0 else 0)
+    0,    // HighEnzymes (Encoded: 1 if (Sgpt > 40 or Sgot > 40) else 0)
+    65    // AgeGenderInteraction (Age * Gender)
+  ]
+}
+2. Heart Attack Prediction
+Endpoint: /predict/heart Method: POST Features Count: 27
+
+Based on src/preprocessing/heart_preprocessing.py, the model expects all original features (with categoricals encoded) plus 2 engineered features. Assumes Blood_Pressure was split into Systolic_BP and Diastolic_BP.
+
+JSON Body:
+
+JSON
+
+{
+  "features": [
+    // --- Original/Encoded Features (25) ---
+    56,  // Age
+    1,   // Sex (Encoded)
+    289, // Cholesterol
+    87,  // Heart_Rate
+    0,   // Diabetes (Encoded)
+    0,   // Family_History (Encoded)
+    1,   // Smoking (Encoded)
+    0,   // Obesity (Encoded)
+    0,   // Alcohol_Consumption (Encoded)
+    4.1, // Exercise_Hours_Per_Week
+    1,   // Diet (Encoded: e.g., Healthy=1, Average=0, Unhealthy=2)
+    0,   // Previous_Heart_Problems (Encoded)
+    0,   // Medication_Use (Encoded)
+    6,   // Stress_Level
+    6.6, // Sedentary_Hours_Per_Day
+    261404, // Income
+    31.2, // BMI
+    235, // Triglycerides
+    3,   // Physical_Activity_Days_Per_Week
+    6,   // Sleep_Hours_Per_Day
+    1,   // Country (Encoded)
+    0,   // Continent (Encoded)
+    1,   // Hemisphere (Encoded)
+    160, // Systolic_BP (Inferred)
+    80,  // Diastolic_BP (Inferred)
+    // --- Engineered Features (2) ---
+    2.0, // SystolicDiastolicRatio (Systolic_BP / (Diastolic_BP + 1e-6))
+    80   // BP_Difference (Systolic_BP - Diastolic_BP)
+  ]
+}
+3. Diabetes Prediction
+Endpoint: /predict/diabetes Method: POST Features Count: 13
+
+Based on src/preprocessing/diabetes_preprocessing.py, the model expects the 8 original features plus 5 engineered features.
+
+JSON Body:
+
+JSON
+
+{
+  "features": [
+    // --- Original Features (8) ---
+    6,    // Pregnancies
+    148,  // Glucose
+    72,   // BloodPressure
+    35,   // SkinThickness
+    79,   // Insulin (Using median for 0)
+    33.6, // BMI
+    0.62, // DiabetesPedigreeFunction
+    50,   // Age
+    // --- Engineered Features (5) ---
+    2,    // AgeGroup (Encoded from Age: e.g., [0, 30, 45, 60, 100] -> [0, 1, 2, 3])
+    3,    // BMICategory (Encoded from BMI: e.g., [0, 18.5, 25, 30, 100] -> [0, 1, 2, 3])
+    2,    // GlucoseCategory (Encoded from Glucose: e.g., [0, 99, 125, 200] -> [0, 1, 2])
+    1680, // BMIAgeInteraction (BMI * Age)
+    4972  // GlucoseBMIInteraction (Glucose * BMI)
+  ]
+}
+4. Mental Health Prediction
+Endpoint: /predict/mental_health/<target> (e.g., /predict/mental_health/depressiveness) Method: POST Features Count: 19
+
+Based on src/preprocessing/mental_health_preprocessing.py, the model expects all original/encoded features plus engineered features. The 3 target variables (depressiveness, anxiousness, sleepiness) are excluded from the feature list.
+
+JSON Body:
+
+JSON
+
+{
+  "features": [
+    // --- Original/Encoded Features (13) ---
+    30,  // age
+    1,   // gender (Encoded)
+    22.5, // bmi
+    10,  // phq_score
+    8,   // gad_score
+    5,   // epworth_score
+    1,   // suicidal (Encoded)
+    0,   // depression_diagnosis (Encoded)
+    0,   // depression_treatment (Encoded)
+    1,   // anxiety_diagnosis (Encoded)
+    0,   // anxiety_treatment (Encoded)
+    1,   // who_bmi (Encoded: e.g., Normal=1)
+    2,   // depression_severity (Encoded: e.g., Moderate=2)
+    1,   // anxiety_severity (Encoded: e.g., Mild=1)
+    // --- Engineered Features (6) ---
+    2,    // MentalHealthRisk (depressiveness + anxiousness + sleepiness) (Note: This is tricky, as these are targets. This feature might be problematic in the original script)
+    18,   // PHQGADCombined (phq_score + gad_score)
+    1,    // ClinicalDepression (1 if phq_score >= 10 else 0)
+    240,  // AgeGAD (age * gad_score)
+    1     // HighRiskProfile (1 if (suicidal == 1 and depressiveness == 1) else 0)
+    // Note: The list of engineered features in the script is slightly different. 
+    // This list represents the features that are not targets.
+  ]
+}
+(Self-correction on Mental Health: The preprocessing script mental_health_preprocessing.py creates MentalHealthRisk and HighRiskProfile using the target variables. This is a form of data leakage and means the API cannot accept raw data to generate these. The frontend would need to ask for depressiveness, anxiousness, and sleepiness as inputs to calculate these engineered features, which defeats the purpose of predicting them. The original app.py is likely flawed for this model.)
+
+Revised Mental Health (Safest Assumption): The scaler was likely trained without the leaky features (MentalHealthRisk, HighRiskProfile).
+
+JSON Body (Mental Health - Non-Leaky Version):
+
+JSON
+
+{
+  "features": [
+    // --- Original/Encoded Features (13) ---
+    30,  // age
+    1,   // gender (Encoded)
+    22.5, // bmi
+    10,  // phq_score
+    8,   // gad_score
+    5,   // epworth_score
+    1,   // suicidal (Encoded)
+    0,   // depression_diagnosis (Encoded)
+    0,   // depression_treatment (Encoded)
+    1,   // anxiety_diagnosis (Encoded)
+    0,   // anxiety_treatment (Encoded)
+    1,   // who_bmi (Encoded: e.g., Normal=1)
+    2,   // depression_severity (Encoded: e.g., Moderate=2)
+    1,   // anxiety_severity (Encoded: e.g., Mild=1)
+    // --- Engineered Features (3) ---
+    18,   // PHQGADCombined (phq_score + gad_score)
+    1,    // ClinicalDepression (1 if phq_score >= 10 else 0)
+    240   // AgeGAD (age * gad_score)
+  ]
+}
