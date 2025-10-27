@@ -57,13 +57,11 @@ def main():
         heart_trainer = train_heart_model()
         results["heart"] = "SUCCESS"
         print("\n✓ Heart model training completed successfully!")
-    except FileNotFoundError:
-        results["heart"] = "SKIPPED: Dataset not found (heart.csv)"
-        print("\n⊘ Heart dataset not found. Skipping...")
     except Exception as e:
         results["heart"] = f"FAILED: {str(e)}"
         print(f"\n✗ Heart model training failed: {str(e)}")
         print("Continuing with next pipeline...")
+
 
     # 3. Train Diabetes Model
     print("\n" + "=" * 80)
