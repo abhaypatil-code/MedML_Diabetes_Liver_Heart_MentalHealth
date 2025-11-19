@@ -1,138 +1,105 @@
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.base import BaseEstimator, TransformerMixin
-import joblib
-from pathlib import Path
-import numpy as np
+from src.preprocessing.base_preprocessor import BasePreprocessor
+import pickle
 
-class HeartPreprocessor:
+class HeartPreprocessor(BasePreprocessor):
     def __init__(self, filepath):
-        self.filepath = filepath
-        self.df = None
-        self.dforiginal = None
-        self.scaler = None
-        self.labelencoder = None
-        self.featurenames = None
-        self.visdir = Path("results/heart/visualizations")  # FIXED: Added slash
-        self.visdir.mkdir(parents=True, exist_ok=True)
+        super().__init__(filepath, "heart")
+        self.label_encoders = {}
+        self.imputers = {}
 
     def load_data(self):
         self.df = pd.read_csv(self.filepath)
-        self.dforiginal = self.df.copy()
+        self.logger.info(f"Loaded data from {self.filepath} with shape {self.df.shape}")
         if "PatientID" in self.df.columns:
             self.df = self.df.drop(columns=["PatientID"])
+            self.logger.info("Dropped PatientID column")
         return self
 
-    def exploratory_analysis(self):
-        plt.figure(figsize=(8, 5))
-        sns.countplot(x="Heart_Attack_Risk", data=self.df)
-        plt.title("Heart Attack Risk Distribution Target")
-        plt.savefig(self.visdir / "heartattackriskdistribution.png")
-        plt.close()
+    def clean_data(self):
+        # Handle missing values
+        numeric_cols = self.df.select_dtypes(include=[np.number]).columns
+        categorical_cols = self.df.select_dtypes(include=[object]).columns
 
-        plt.figure(figsize=(12, 10))
-        sns.heatmap(self.df.select_dtypes(include=np.number).corr(), annot=True, fmt=".2f", cmap="coolwarm")
-        plt.title("Numerical Feature Correlation Heatmap")
-        plt.savefig(self.visdir / "heartnumericalcorrelation.png")
-        plt.close()
-        return self
+        if not numeric_cols.empty:
+            imputer_num = SimpleImputer(strategy='mean')
+            self.df[numeric_cols] = imputer_num.fit_transform(self.df[numeric_cols])
+            self.imputers['numeric'] = imputer_num
+        
+        if not categorical_cols.empty:
+            imputer_cat = SimpleImputer(strategy='most_frequent')
+            self.df[categorical_cols] = imputer_cat.fit_transform(self.df[categorical_cols])
+            self.imputers['categorical'] = imputer_cat
+        
+        self.logger.info("Imputed missing values (Mean for numeric, Most Frequent for categorical)")
 
-    def handle_missing_values(self):
-        imputer = SimpleImputer(strategy='mean')
-        for col in self.df.select_dtypes(include=[np.number]).columns:
-            if self.df[col].isnull().any():
-                self.df[col] = imputer.fit_transform(self.df[[col]])
-
-        for col in self.df.select_dtypes(include=[object]).columns:
-            if self.df[col].isnull().any():
-                imputer = SimpleImputer(strategy='most_frequent')
-                self.df[col] = imputer.fit_transform(self.df[[col]])
-        return self
-
-    def encode_categorical_variables(self):
-        cat_cols = self.df.select_dtypes(include=[object]).columns
-        self.labelencoder = {}  # FIXED: Dictionary instead of single encoder
-        for col in cat_cols:
-            le = LabelEncoder()  # FIXED: Create new encoder for each column
+        # Encode categorical variables
+        for col in categorical_cols:
+            le = LabelEncoder()
             self.df[col] = le.fit_transform(self.df[col].astype(str))
-            self.labelencoder[col] = le  # FIXED: Store each encoder
-        return self
+            self.label_encoders[col] = le
+        
+        # Save all artifacts
+        artifacts = {
+            'label_encoders': self.label_encoders,
+            'imputers': self.imputers
+        }
+        with open(self.scalers_dir / "heart_artifacts.pkl", "wb") as f:
+            pickle.dump(artifacts, f)
+        self.logger.info("Encoded categorical variables and saved artifacts")
 
-    def detect_and_handle_outliers(self):
-        # FIXED: Changed 'HeartAttackRisk' to 'Heart_Attack_Risk'
-        numerical_cols = self.df.select_dtypes(include=[np.number]).columns.difference(['Heart_Attack_Risk'])
-        for col in numerical_cols:
-            Q1 = self.df[col].quantile(0.25)
-            Q3 = self.df[col].quantile(0.75)
-            IQR = Q3 - Q1
-            lower_bound = Q1 - 1.5 * IQR
-            upper_bound = Q3 + 1.5 * IQR
-            self.df[col] = np.clip(self.df[col], lower_bound, upper_bound)
-        return self
-
-    def feature_engineering(self):
-        if ('Systolic_BP' in self.df.columns and 'Diastolic_BP' in self.df.columns):
-            self.df["SystolicDiastolicRatio"] = self.df["Systolic_BP"] / (self.df["Diastolic_BP"] + 1e-6)
-            self.df['BP_Difference'] = self.df['Systolic_BP'] - self.df['Diastolic_BP']
-        return self
-
-    def check_duplicates(self):
+        # Outlier handling
+        target_col = "Heart_Attack_Risk"
+        if target_col in self.df.columns:
+            numeric_cols = self.df.select_dtypes(include=[np.number]).columns.difference([target_col])
+            for col in numeric_cols:
+                Q1 = self.df[col].quantile(0.25)
+                Q3 = self.df[col].quantile(0.75)
+                IQR = Q3 - Q1
+                lower = Q1 - 1.5 * IQR
+                upper = Q3 + 1.5 * IQR
+                self.df[col] = np.clip(self.df[col], lower, upper)
+            self.logger.info("Handled outliers using IQR capping")
+        
+        # Remove duplicates
         self.df = self.df.drop_duplicates()
         return self
 
-    def train_test_split_data(self, test_size=0.2, random_state=42):
-        X = self.df.drop(columns=["Heart_Attack_Risk"])
-        y = self.df["Heart_Attack_Risk"]
-        self.featurenames = X.columns.tolist()
+    def feature_engineering(self):
+        # BP features
+        if 'Systolic_BP' in self.df.columns and 'Diastolic_BP' in self.df.columns:
+            self.df["SystolicDiastolicRatio"] = self.df["Systolic_BP"] / (self.df["Diastolic_BP"] + 1e-6)
+            self.df['BP_Difference'] = self.df['Systolic_BP'] - self.df['Diastolic_BP']
+            self.logger.info("Created BP features: SystolicDiastolicRatio, BP_Difference")
+        return self
+
+    def split_data(self):
+        target_col = "Heart_Attack_Risk"
+        X = self.df.drop(columns=[target_col])
+        y = self.df[target_col]
         self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
-            X, y, test_size=test_size, random_state=random_state, stratify=y
+            X, y, test_size=0.2, random_state=42, stratify=y
         )
+        self.logger.info(f"Split data into Train ({self.X_train.shape}) and Test ({self.X_test.shape})")
         return self
 
-    def scale_features(self):
-        self.scaler = StandardScaler()
-        self.X_train = pd.DataFrame(self.scaler.fit_transform(self.X_train), columns=self.featurenames, index=self.X_train.index)
-        self.X_test = pd.DataFrame(self.scaler.transform(self.X_test), columns=self.featurenames, index=self.X_test.index)
+    def normalize_data(self):
+        scaler = StandardScaler()
+        self.X_train = pd.DataFrame(scaler.fit_transform(self.X_train), columns=self.X_train.columns)
+        self.X_test = pd.DataFrame(scaler.transform(self.X_test), columns=self.X_test.columns)
+        
+        with open(self.scalers_dir / "heart_scaler.pkl", "wb") as f:
+            pickle.dump(scaler, f)
+        self.logger.info("Normalized data and saved scaler")
         return self
 
-    def save_processed_data(self):
-        output_dir = Path("data/processed")
-        splits_dir = Path("data/splits")
-        scalers_dir = Path("scalers")
-        output_dir.mkdir(parents=True, exist_ok=True)
-        splits_dir.mkdir(parents=True, exist_ok=True)
-        scalers_dir.mkdir(parents=True, exist_ok=True)
-
-        self.df.to_csv(output_dir / "heart_processed_unscaled.csv", index=False)
-
-        train_df = pd.concat([self.X_train.reset_index(drop=True), self.y_train.reset_index(drop=True)], axis=1)
-        test_df = pd.concat([self.X_test.reset_index(drop=True), self.y_test.reset_index(drop=True)], axis=1)
-
-        train_df.to_csv(splits_dir / "heart_train_scaled.csv", index=False)
-        test_df.to_csv(splits_dir / "heart_test_scaled.csv", index=False)
-
-        joblib.dump(self.scaler, scalers_dir / "heart_scaler.pkl")
-        # FIXED: Save label encoders dictionary
-        if self.labelencoder:
-            joblib.dump(self.labelencoder, scalers_dir / "heart_label_encoders.pkl")
-        return self
-
-def preprocess_heart_data(filepath):
+def preprocess_heart_data(filepath="data/raw/heart.csv"):
     preprocessor = HeartPreprocessor(filepath)
-    (preprocessor.load_data()
-     .exploratory_analysis()
-     .handle_missing_values()
-     .encode_categorical_variables()
-     .detect_and_handle_outliers()
-     .feature_engineering()
-     .check_duplicates()
-     .train_test_split_data()
-     .scale_features()
-     .save_processed_data())
-    return preprocessor.X_train, preprocessor.X_test, preprocessor.y_train, preprocessor.y_test, preprocessor
+    return preprocessor.run_pipeline()
+
+if __name__ == "__main__":
+    preprocess_heart_data()

@@ -25,7 +25,8 @@ def main():
     print("  - Data visualization and exploration")
     print("  - Preprocessing and feature engineering")
     print("  - Train-test split")
-    print("  - Model training and evaluation")
+    print("  - Advanced Model training (Baselines, SMOTE, Weighted)")
+    print("  - Hyperparameter Tuning")
     print("  - Best model selection and saving")
     print("=" * 80)
     
@@ -41,52 +42,56 @@ def main():
     print("[1/4] LIVER DISEASE PREDICTION PIPELINE")
     print("=" * 80)
     try:
-        liver_trainer = train_liver_model()
+        train_liver_model()
         results["liver"] = "SUCCESS"
         print("\n✓ Liver model training completed successfully!")
     except Exception as e:
         results["liver"] = f"FAILED: {str(e)}"
         print(f"\n✗ Liver model training failed: {str(e)}")
-        print("Continuing with next pipeline...")
+        import traceback
+        traceback.print_exc()
 
     # 2. Train Heart Disease Model
     print("\n" + "=" * 80)
     print("[2/4] HEART DISEASE PREDICTION PIPELINE")
     print("=" * 80)
     try:
-        heart_trainer = train_heart_model()
+        train_heart_model()
         results["heart"] = "SUCCESS"
         print("\n✓ Heart model training completed successfully!")
     except Exception as e:
         results["heart"] = f"FAILED: {str(e)}"
         print(f"\n✗ Heart model training failed: {str(e)}")
-        print("Continuing with next pipeline...")
-
+        import traceback
+        traceback.print_exc()
 
     # 3. Train Diabetes Model
     print("\n" + "=" * 80)
     print("[3/4] DIABETES PREDICTION PIPELINE")
     print("=" * 80)
     try:
-        diabetes_trainer = train_diabetes_model()
+        train_diabetes_model()
         results["diabetes"] = "SUCCESS"
         print("\n✓ Diabetes model training completed successfully!")
     except Exception as e:
         results["diabetes"] = f"FAILED: {str(e)}"
         print(f"\n✗ Diabetes model training failed: {str(e)}")
-        print("Continuing with next pipeline...")
+        import traceback
+        traceback.print_exc()
 
     # 4. Train Mental Health Models
     print("\n" + "=" * 80)
     print("[4/4] MENTAL HEALTH PREDICTION PIPELINE")
     print("=" * 80)
     try:
-        mental_health_trainers = train_all_mental_health_targets()
+        train_all_mental_health_targets()
         results["mental_health"] = "SUCCESS"
         print("\n✓ Mental health models training completed successfully!")
     except Exception as e:
         results["mental_health"] = f"FAILED: {str(e)}"
         print(f"\n✗ Mental health models training failed: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
     # Summary Report
     print("\n" + "=" * 80)
@@ -94,7 +99,7 @@ def main():
     print("=" * 80)
     print("\nPipeline Results:")
     for pipeline, result in results.items():
-        status_symbol = "✓" if result == "SUCCESS" else "⊘" if "SKIPPED" in result else "✗"
+        status_symbol = "✓" if result == "SUCCESS" else "✗"
         print(f"  {status_symbol} {pipeline.upper()}: {result}")
     
     print("\n" + "=" * 80)

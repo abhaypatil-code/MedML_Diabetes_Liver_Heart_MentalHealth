@@ -81,7 +81,7 @@ data/processed/
 data/splits/
 
 # Saved models and scalers
-models/
+/models/
 scalers/
 
 # Results, logs, and visualizations
